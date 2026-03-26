@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Adopt Me Trade Simulator</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #cceeff; text-align:center; padding:20px; }
+  h1 { margin-bottom:20px; }
+  .trade-container { display:flex; justify-content:space-around; flex-wrap:wrap; }
+  .player {
+    background:#fff; padding:15px; border:2px solid black; width:45%; border-radius:10px;
+    margin-bottom:20px; min-width:300px;
+  }
+  .total-value { font-weight:bold; margin-bottom:10px; font-size:18px; }
+  .pet-list { list-style:none; padding:0; display:flex; flex-wrap:wrap; justify-content:center; gap:5px; }
+  .pet-list li { background:#f0f0f0; padding:5px; border-radius:5px; width:100px; text-align:center; border:2px solid gray; }
+  .pet-list img { width:60px; height:60px; object-fit:contain; }
+  select, button, label { margin-top:5px; font-size:14px; }
+  button { background:#0077cc; color:white; border:none; border-radius:5px; cursor:pointer; padding:5px 10px; }
+  button:hover { background:#005fa3; }
+</style>
+</head>
+<body>
+
+<h1>Adopt Me Trade Simulator</h1>
+
+<div class="trade-container">
+  <div class="player" id="player1">
+    <div class="total-value">Total: <span id="player1Total">0</span></div>
+    <ul class="pet-list" id="player1Pets"></ul>
+    <select id="player1Select"></select><br>
+    <label><input type="checkbox" id="player1Neon"> Neon</label>
+    <label><input type="checkbox" id="player1Mega"> Mega-Neon</label>
+    <label><input type="checkbox" id="player1Fly"> Fly</label>
+    <label><input type="checkbox" id="player1Ride"> Ride</label><br>
+    <button onclick="addPet('player1')">Add Pet</button>
+  </div>
+
+  <div class="player" id="player2">
+    <div class="total-value">Total: <span id="player2Total">0</span></div>
+    <ul class="pet-list" id="player2Pets"></ul>
+    <select id="player2Select"></select><br>
+    <label><input type="checkbox" id="player2Neon"> Neon</label>
+    <label><input type="checkbox" id="player2Mega"> Mega-Neon</label>
+    <label><input type="checkbox" id="player2Fly"> Fly</label>
+    <label><input type="checkbox" id="player2Ride"> Ride</label><br>
+    <button onclick="addPet('player2')">Add Pet</button>
+  </div>
+</div>
+
+<h2 id="tradeResult"></h2>
+
+<script>
+// High community pet values
+const petValues = {
+  "Shadow Dragon": { value: 280, rarity: "Legendary", img:"https://i.imgur.com/3f0bZyQ.png" },
+  "Bat Dragon": { value: 200, rarity: "Legendary", img:"https://i.imgur.com/3VZJx8S.png" },
+  "Kangaroo": { value: 180, rarity: "Legendary", img:"https://i.imgur.com/Yn1wRkI.png" },
+  "Turtle": { value: 170, rarity: "Legendary", img:"https://i.imgur.com/YXnMrB8.png" },
+  "Frost Dragon": { value: 100, rarity:"Legendary", img:"https://i.imgur.com/hQmNVtk.png" },
+  "Giraffe": { value: 160, rarity:"Ultra-Rare", img:"https://i.imgur.com/8M4bFkp.png" },
+  "Owl": { value: 95, rarity:"Rare", img:"https://i.imgur.com/4i5fXlK.png" },
+  "Parrot": { value: 85, rarity:"Rare", img:"https://i.imgur.com/0ZyWjOz.png" },
+  "Dalmatian": { value: 15, rarity:"Ultra-Rare", img:"https://i.imgur.com/kU8wO8s.png" },
+  "Hedgehog": { value: 14, rarity:"Ultra-Rare", img:"https://i.imgur.com/0oWmL2T.png" },
+  // You can keep adding more pets here with same structure
+};
+
+let players = { player1: {pets:[], total:0}, player2:{pets:[], total:0} };
+
+// Populate dropdowns
+Object.keys(petValues).forEach(pet => {
+  ["player1Select","player2Select"].forEach(id => {
+    const sel = document.getElementById(id);
+    const opt = document.createElement("option");
+    opt.value = pet;
+    opt.textContent = pet + " (" + petValues[pet].value + ")";
+    sel.appendChild(opt);
+  });
+});
+
+function addPet(player){
+  const sel = document.getElementById(player+"Select");
+  const petName = sel.value;
+  const data = petValues[petName];
+  
+  let value = data.value;
+  const neon = document.getElementById(player+"Neon").checked;
+  const mega = document.getElementById(player+"Mega").checked;
+  const fly = document.getElementById(player+"Fly").checked;
+  const ride = document.getElementById(player+"Ride").checked;
+
+  // Apply multipliers
+  if(mega) value *= 1.5;
+  else if(neon) value *= 1.2;
+
+  players[player].pets.push({...data, value, neon, mega, fly, ride});
+
+  // Add to list UI
+  const li = document.createElement("li");
+  li.style.borderColor = getRarityColor(data.rarity);
+  let icons = "";
+  if(fly) icons += "🕊️";
+  if(ride) icons += "🏇";
+  li.innerHTML = `<img src="${data.img}" alt="${petName}"><br>${petName} ${icons}<br>${value.toFixed(2)}`;
+  document.getElementById(player+"Pets").appendChild(li);
+
+  players[player].total += value;
+  document.getElementById(player+"Total").textContent = players[player].total.toFixed(2);
+
+  checkTrade();
+}
+
+function getRarityColor(rarity){
+  switch(rarity){
+    case "Legendary": return "gold";
+    case "Ultra-Rare": return "purple";
+    case "Rare": return "blue";
+    default: return "gray";
+  }
+}
+
+function checkTrade(){
+  const diff = Math.abs(players.player1.total - players.player2.total);
+  const result = document.getElementById("tradeResult");
+  if(diff < 0.1){
+    result.textContent = "Trade is fair! ✅";
+    result.style.color="green";
+  } else {
+    result.textContent = `Difference: ${diff.toFixed(2)} 🧮`;
+    result.style.color="orange";
+  }
+}
+</script>
+
+</body>
+</html>
